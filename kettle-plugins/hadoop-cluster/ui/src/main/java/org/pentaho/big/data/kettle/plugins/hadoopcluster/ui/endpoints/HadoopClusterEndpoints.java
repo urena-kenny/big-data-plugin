@@ -93,20 +93,27 @@ public class HadoopClusterEndpoints {
   public HadoopClusterEndpoints( NamedClusterService namedClusterService,
                                  RuntimeTester runtimeTester, String internalShim, boolean secureEnabled ) {
     this.namedClusterService = namedClusterService;
-    try {
-      Collection<MetastoreLocator> metastoreLocators = PluginServiceLoader.loadServices( MetastoreLocator.class );
-      this.metastoreLocator = metastoreLocators.stream().findFirst().get();
-    } catch ( Exception e ) {
-      log.logError( "Error getting MetastoreLocator", e );
-    }
     this.runtimeTester = runtimeTester;
     this.internalShim = internalShim;
     this.secureEnabled = secureEnabled;
   }
 
+  
+  protected MetastoreLocator getMetastoreLocator() {
+    if ( this.metastoreLocator == null ) {
+      try {
+        Collection<MetastoreLocator> metastoreLocators = PluginServiceLoader.loadServices( MetastoreLocator.class );
+        this.metastoreLocator = metastoreLocators.stream().findFirst().get();
+      } catch ( Exception e ) {
+        log.logError( "Error getting MetastoreLocator", e );
+      }
+    }
+      return this.metastoreLocator;
+  }
+
   private HadoopClusterManager getClusterManager() {
     return new HadoopClusterManager( spoonSupplier.get(), this.namedClusterService,
-      this.metastoreLocator.getMetastore(),
+    getMetastoreLocator().getMetastore(),
       internalShim );
   }
 

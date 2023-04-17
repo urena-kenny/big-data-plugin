@@ -106,6 +106,11 @@ public class HDFSFileProvider extends AbstractOriginatingFileProvider {
     this.hadoopFileSystemLocator = hadoopFileSystemLocator;
     this.namedClusterService = namedClusterService;
     this.metaStoreService = metaStore;
+    setFileNameParser( fileNameParser );
+    fileSystemManager.addProvider( schemes, this );
+  }
+
+  protected MetastoreLocator getMetastoreLocator() {
     if ( this.metaStoreService == null ) {
       try {
         Collection<MetastoreLocator> metastoreLocators = PluginServiceLoader.loadServices( MetastoreLocator.class );
@@ -114,8 +119,7 @@ public class HDFSFileProvider extends AbstractOriginatingFileProvider {
         logger.error( "Error getting MetastoreLocator", e );
       }
     }
-    setFileNameParser( fileNameParser );
-    fileSystemManager.addProvider( schemes, this );
+    return this.metaStoreService;
   }
 
   @Override protected FileSystem doCreateFileSystem( final FileName name, final FileSystemOptions fileSystemOptions )
@@ -138,7 +142,7 @@ public class HDFSFileProvider extends AbstractOriginatingFileProvider {
 
   @Override
   public FileSystemConfigBuilder getConfigBuilder() {
-    return NamedClusterConfigBuilder.getInstance( metaStoreService, namedClusterService );
+    return NamedClusterConfigBuilder.getInstance( getMetastoreLocator(), namedClusterService );
   }
 
   private NamedCluster resolveNamedCluster( String hostName, int port, final FileName name ) {

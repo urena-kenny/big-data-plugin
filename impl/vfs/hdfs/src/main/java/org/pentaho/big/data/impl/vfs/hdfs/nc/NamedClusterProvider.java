@@ -90,14 +90,6 @@ public class NamedClusterProvider extends HDFSFileProvider implements VfsEmbedde
                                MetastoreLocator metaStore ) throws FileSystemException {
     super( hadoopFileSystemLocator, namedClusterService, fileSystemManager, fileNameParser, schemes, metaStore );
     this.metaStoreService = metaStore;
-    if ( this.metaStoreService == null ) {
-      try {
-        Collection<MetastoreLocator> metastoreLocators = PluginServiceLoader.loadServices( MetastoreLocator.class );
-        this.metaStoreService = metastoreLocators.stream().findFirst().get();
-      } catch ( Exception e ) {
-        logger.error( "Error getting MetastoreLocator", e );
-      }
-    }
   }
 
 
@@ -126,7 +118,7 @@ public class NamedClusterProvider extends HDFSFileProvider implements VfsEmbedde
 
   @Override
   public FileSystemConfigBuilder getConfigBuilder() {
-    return NamedClusterConfigBuilder.getInstance( metaStoreService, namedClusterService );
+    return NamedClusterConfigBuilder.getInstance( getMetastoreLocator(), namedClusterService );
   }
 
   /**
@@ -170,8 +162,8 @@ public class NamedClusterProvider extends HDFSFileProvider implements VfsEmbedde
 
   private IMetaStore getMetastore( String clusterNameToResolve, FileSystemOptions fileSystemOptions ) {
     String embeddedMetastoreKey = getEmbeddedMetastoreKey( fileSystemOptions );
-    IMetaStore metaStore = ( embeddedMetastoreKey != null ) ? metaStoreService.getMetastore( embeddedMetastoreKey )
-      : metaStoreService.getMetastore();
+    IMetaStore metaStore = ( embeddedMetastoreKey != null ) ? getMetastoreLocator().getMetastore( embeddedMetastoreKey )
+      : getMetastoreLocator().getMetastore();
     if ( metaStore != null ) {
       try {
         if ( namedClusterService.read( clusterNameToResolve, metaStore ) != null ) {
@@ -180,8 +172,8 @@ public class NamedClusterProvider extends HDFSFileProvider implements VfsEmbedde
       } catch ( MetaStoreException e ) {
         // fall through and return the embedded metastore
       }
-      if ( metaStoreService.getExplicitMetastore( embeddedMetastoreKey ) != null ) {
-        metaStore = metaStoreService.getExplicitMetastore( embeddedMetastoreKey );
+      if ( getMetastoreLocator().getExplicitMetastore( embeddedMetastoreKey ) != null ) {
+        metaStore = getMetastoreLocator().getExplicitMetastore( embeddedMetastoreKey );
       }
     }
     return metaStore;
@@ -199,8 +191,8 @@ public class NamedClusterProvider extends HDFSFileProvider implements VfsEmbedde
   }
 
   public void closeFileSystem( String embeddedMetastoreKey ) {
-    IMetaStore defaultMetastore = metaStoreService.getMetastore();
-    IMetaStore embeddedMetastore = metaStoreService.getExplicitMetastore( embeddedMetastoreKey );
+    IMetaStore defaultMetastore = getMetastoreLocator().getMetastore();
+    IMetaStore embeddedMetastore = getMetastoreLocator().getExplicitMetastore( embeddedMetastoreKey );
     if ( cacheEntries.get( embeddedMetastoreKey ) != null ) {
       for ( FileSystem fs : cacheEntries.get( embeddedMetastoreKey ) ) {
         closeFileSystem( fs );

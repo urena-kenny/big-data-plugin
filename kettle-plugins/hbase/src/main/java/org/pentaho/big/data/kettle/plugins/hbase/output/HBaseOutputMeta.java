@@ -166,12 +166,18 @@ public class HBaseOutputMeta extends BaseStepMeta implements StepMetaInterface {
                           RuntimeTestActionService runtimeTestActionService, RuntimeTester runtimeTester ) {
     this( namedClusterService, namedClusterServiceLocator,
       runtimeTestActionService, runtimeTester, new NamedClusterLoadSaveUtil(), null );
-    try {
-      Collection<MetastoreLocator> metastoreLocators = PluginServiceLoader.loadServices( MetastoreLocator.class );
-      this.metaStoreService = metastoreLocators.stream().findFirst().get();
-    } catch ( Exception e ) {
-      getLog().logError( "Error getting MetastoreLocator", e );
+  }
+  
+  protected MetastoreLocator getMetastoreService() {
+    if(this.metaStoreService == null){   
+      try {
+        Collection<MetastoreLocator> metastoreLocators = PluginServiceLoader.loadServices( MetastoreLocator.class );
+        this.metaStoreService = metastoreLocators.stream().findFirst().get();
+      } catch ( Exception e ) {
+        getLog().logError( "Error getting MetastoreLocator", e );
+      }
     }
+    return this.metaStoreService;
   }
 
   @VisibleForTesting
@@ -272,7 +278,7 @@ public class HBaseOutputMeta extends BaseStepMeta implements StepMetaInterface {
       // the namedCluster present in the local metastore.  Time to load it from the embedded Metastore which is only
       // present at runtime
       NamedCluster nc = namedClusterService.getNamedClusterByName( namedCluster.getName(),
-        metaStoreService.getExplicitMetastore( getParentStepMeta().getParentTransMeta().getEmbeddedMetastoreProviderKey() ) );
+        getMetastoreService().getExplicitMetastore( getParentStepMeta().getParentTransMeta().getEmbeddedMetastoreProviderKey() ) );
       if ( nc != null && nc.getShimIdentifier() != null ) {
         namedCluster = nc; //Overwrite with the real one
       }
@@ -382,7 +388,7 @@ public class HBaseOutputMeta extends BaseStepMeta implements StepMetaInterface {
     throws KettleXMLException {
 
     if ( metaStore == null ) {
-      metaStore = metaStoreService.getMetastore();
+      metaStore = getMetastoreService().getMetastore();
     }
 
     this.namedCluster =
@@ -429,7 +435,7 @@ public class HBaseOutputMeta extends BaseStepMeta implements StepMetaInterface {
     throws KettleException {
 
     if ( metaStore == null ) {
-      metaStore = metaStoreService.getMetastore();
+      metaStore = getMetastoreService().getMetastore();
     }
 
     this.namedCluster =
@@ -461,7 +467,7 @@ public class HBaseOutputMeta extends BaseStepMeta implements StepMetaInterface {
     throws KettleException {
 
     if ( metaStore == null ) {
-      metaStore = metaStoreService.getMetastore();
+      metaStore = getMetastoreService().getMetastore();
     }
 
     namedClusterLoadSaveUtil

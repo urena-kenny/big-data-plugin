@@ -57,12 +57,16 @@ public class Hive2DatabaseMeta extends DatabaseMetaWithVersion {
   public Hive2DatabaseMeta( DriverLocator driverLocator, NamedClusterService namedClusterService ) {
     super( driverLocator );
     this.namedClusterService = namedClusterService;
+  }
+
+  public MetastoreLocator getMetastoreLocator() {
     try {
       Collection<MetastoreLocator> metastoreLocators = PluginServiceLoader.loadServices( MetastoreLocator.class );
       this.metastoreLocator = metastoreLocators.stream().findFirst().get();
     } catch ( Exception e ) {
       logger.error( "Error getting metastore locator", e );
     }
+    return this.metastoreLocator;
   }
 
   @VisibleForTesting
@@ -259,7 +263,7 @@ public class Hive2DatabaseMeta extends DatabaseMetaWithVersion {
 
   @Override public List<String> getNamedClusterList() {
     try {
-      return namedClusterService.listNames( metastoreLocator.getMetastore() );
+      return namedClusterService.listNames( getMetastoreLocator().getMetastore() );
     } catch ( MetaStoreException e ) {
       e.printStackTrace();
       return null;

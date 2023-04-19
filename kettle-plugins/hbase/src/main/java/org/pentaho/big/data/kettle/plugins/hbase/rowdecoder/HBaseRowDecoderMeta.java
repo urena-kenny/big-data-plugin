@@ -121,12 +121,18 @@ public class HBaseRowDecoderMeta extends BaseStepMeta implements StepMetaInterfa
                               NamedClusterService namedClusterService,
                               RuntimeTestActionService runtimeTestActionService, RuntimeTester runtimeTester ) {
     this( namedClusterServiceLocator, namedClusterService, runtimeTestActionService, runtimeTester, null );
-    try {
-      Collection<MetastoreLocator> metastoreLocators = PluginServiceLoader.loadServices( MetastoreLocator.class );
-      this.metaStoreService = metastoreLocators.stream().findFirst().get();
-    } catch ( Exception e ) {
-      logError( "Error getting MetastoreLocator", e );
+  }
+
+  public MetastoreLocator getMetastoreLocators() {        
+    if ( this.metaStoreService == null ) {                 
+      try {
+        Collection<MetastoreLocator> metastoreLocators = PluginServiceLoader.loadServices( MetastoreLocator.class );
+        this.metaStoreService = metastoreLocators.stream().findFirst().get();
+      } catch ( Exception e ) {
+        logError( "Error getting MetastoreLocator", e );
+      }
     }
+    return this.metaStoreService;
   }
 
   @VisibleForTesting
@@ -344,7 +350,7 @@ public class HBaseRowDecoderMeta extends BaseStepMeta implements StepMetaInterfa
 
   public void loadXML( Node stepnode, List<DatabaseMeta> databases, IMetaStore metaStore ) throws KettleXMLException {
     if ( metaStore == null ) {
-      metaStore = metaStoreService.getMetastore();
+      metaStore = getMetastoreLocators().getMetastore();
     }
 
     mIncomingKeyField = XMLHandler.getTagValue( stepnode, INCOMING_KEY_FIELD );
